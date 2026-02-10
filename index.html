@@ -108,6 +108,17 @@
       padding: 0 20px;
       font-size: 0.8rem;
       color: var(--text-muted);
+      gap: 16px;
+    }
+
+    .stat {
+      display: flex;
+      gap: 4px;
+    }
+
+    .stat-value {
+      font-weight: 600;
+      color: var(--text);
     }
     .toggle-row {
       display: flex;
@@ -219,7 +230,14 @@
     <textarea placeholder="Paste or type your text here..."></textarea>
   </main>
 
-  <footer class="stats-bar"></footer>
+  <footer class="stats-bar">
+    <div class="stat"><span class="stat-value" id="chars">0</span> chars</div>
+    <div class="stat"><span class="stat-value" id="chars-no-spaces">0</span> chars (no spaces)</div>
+    <div class="stat"><span class="stat-value" id="words">0</span> words</div>
+    <div class="stat"><span class="stat-value" id="sentences">0</span> sentences</div>
+    <div class="stat"><span class="stat-value" id="lines">0</span> lines</div>
+    <div class="stat"><span class="stat-value" id="paragraphs">0</span> paragraphs</div>
+  </footer>
 
   <script>
     const textarea = document.querySelector('.editor textarea');
@@ -262,17 +280,28 @@
       return ops;
     }
 
+    function updateStats() {
+      const text = textarea.value;
+      document.getElementById('chars').textContent = text.length;
+      document.getElementById('chars-no-spaces').textContent = text.replace(/\s/g, '').length;
+      document.getElementById('words').textContent = text.trim() ? text.trim().split(/\s+/).length : 0;
+      document.getElementById('sentences').textContent = text.trim() ? (text.match(/[.!?]+/g) || []).length : 0;
+      document.getElementById('lines').textContent = text ? text.split('\n').length : 0;
+      document.getElementById('paragraphs').textContent = text.trim() ? text.trim().split(/\n\s*\n/).length : 0;
+    }
+
     function runPipeline() {
       const ops = getActiveOps();
       if (ops.length === 0) {
         textarea.value = originalText;
-        return;
+      } else {
+        let result = originalText;
+        for (const op of ops) {
+          if (cleaners[op]) result = cleaners[op](result);
+        }
+        textarea.value = result;
       }
-      let result = originalText;
-      for (const op of ops) {
-        if (cleaners[op]) result = cleaners[op](result);
-      }
-      textarea.value = result;
+      updateStats();
     }
 
     toggles.forEach(toggle => {
@@ -291,11 +320,14 @@
       if (getActiveOps().length === 0) {
         originalText = textarea.value;
       }
+      updateStats();
     });
 
     textarea.addEventListener('focus', () => {
       if (!originalText) originalText = textarea.value;
     });
+
+    updateStats();
   </script>
 </body>
 </html>
