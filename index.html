@@ -186,6 +186,25 @@
     .clean-all-btn:hover {
       background: var(--accent-hover);
     }
+
+    .sidebar-section {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .radio-row {
+      display: flex;
+      align-items: center;
+      padding: 6px 0;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .radio-row input[type="radio"] {
+      accent-color: var(--accent);
+      margin-right: 8px;
+    }
   </style>
 </head>
 <body>
@@ -224,6 +243,25 @@
       <div class="toggle-track" data-op="smartQuotes"></div>
     </div>
     <button class="clean-all-btn">Clean All</button>
+
+    <div class="sidebar-section">
+      <h2>Case Conversion</h2>
+      <label class="radio-row">
+        <input type="radio" name="caseConversion" value="none" checked> None
+      </label>
+      <label class="radio-row">
+        <input type="radio" name="caseConversion" value="sentence"> Sentence case
+      </label>
+      <label class="radio-row">
+        <input type="radio" name="caseConversion" value="title"> Title Case
+      </label>
+      <label class="radio-row">
+        <input type="radio" name="caseConversion" value="upper"> UPPER CASE
+      </label>
+      <label class="radio-row">
+        <input type="radio" name="caseConversion" value="lower"> lower case
+      </label>
+    </div>
   </aside>
 
   <main class="editor">
@@ -243,6 +281,7 @@
     const textarea = document.querySelector('.editor textarea');
     const toggles = document.querySelectorAll('.toggle-track');
     const cleanAllBtn = document.querySelector('.clean-all-btn');
+    const caseRadios = document.querySelectorAll('input[name="caseConversion"]');
     let originalText = '';
 
     const cleaners = {
@@ -290,17 +329,32 @@
       document.getElementById('paragraphs').textContent = text.trim() ? text.trim().split(/\n\s*\n/).length : 0;
     }
 
+    const caseConverters = {
+      none: text => text,
+      sentence: text => text.replace(/(^\s*|[.!?]\s+)(\w)/gm, (m, pre, ch) => pre + ch.toUpperCase()),
+      title: text => text.replace(/\b\w/g, ch => ch.toUpperCase()),
+      upper: text => text.toUpperCase(),
+      lower: text => text.toLowerCase()
+    };
+
+    function getSelectedCase() {
+      const checked = document.querySelector('input[name="caseConversion"]:checked');
+      return checked ? checked.value : 'none';
+    }
+
     function runPipeline() {
       const ops = getActiveOps();
-      if (ops.length === 0) {
-        textarea.value = originalText;
-      } else {
-        let result = originalText;
+      const caseMode = getSelectedCase();
+      let result = originalText;
+      if (ops.length > 0) {
         for (const op of ops) {
           if (cleaners[op]) result = cleaners[op](result);
         }
-        textarea.value = result;
       }
+      if (caseMode !== 'none') {
+        result = caseConverters[caseMode](result);
+      }
+      textarea.value = result;
       updateStats();
     }
 
@@ -314,6 +368,10 @@
     cleanAllBtn.addEventListener('click', () => {
       toggles.forEach(t => t.classList.add('active'));
       runPipeline();
+    });
+
+    caseRadios.forEach(radio => {
+      radio.addEventListener('change', runPipeline);
     });
 
     textarea.addEventListener('input', () => {
