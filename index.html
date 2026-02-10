@@ -109,6 +109,72 @@
       font-size: 0.8rem;
       color: var(--text-muted);
     }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .toggle-row:last-child {
+      border-bottom: none;
+    }
+
+    .toggle-label {
+      font-size: 0.85rem;
+      color: var(--text);
+    }
+
+    .toggle-track {
+      position: relative;
+      width: 40px;
+      height: 22px;
+      background: var(--border);
+      border-radius: 11px;
+      cursor: pointer;
+      transition: background 0.2s;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+
+    .toggle-track::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+
+    .toggle-track.active {
+      background: var(--accent);
+    }
+
+    .toggle-track.active::after {
+      transform: translateX(18px);
+    }
+
+    .clean-all-btn {
+      width: 100%;
+      padding: 8px 12px;
+      margin-top: 12px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .clean-all-btn:hover {
+      background: var(--accent-hover);
+    }
   </style>
 </head>
 <body>
@@ -118,6 +184,35 @@
 
   <aside class="sidebar">
     <h2>Cleaning Options</h2>
+    <div class="toggle-row">
+      <span class="toggle-label">Trim whitespace</span>
+      <div class="toggle-track" data-op="trim"></div>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Collapse spaces</span>
+      <div class="toggle-track" data-op="collapseSpaces"></div>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Remove empty lines</span>
+      <div class="toggle-track" data-op="removeEmptyLines"></div>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Remove duplicates</span>
+      <div class="toggle-track" data-op="removeDuplicates"></div>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Unwrap paragraphs</span>
+      <div class="toggle-track" data-op="unwrapParagraphs"></div>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Fix punctuation</span>
+      <div class="toggle-track" data-op="fixPunctuation"></div>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Smart quotes</span>
+      <div class="toggle-track" data-op="smartQuotes"></div>
+    </div>
+    <button class="clean-all-btn">Clean All</button>
   </aside>
 
   <main class="editor">
@@ -127,7 +222,80 @@
   <footer class="stats-bar"></footer>
 
   <script>
-    // Features will be added via feature branches
+    const textarea = document.querySelector('.editor textarea');
+    const toggles = document.querySelectorAll('.toggle-track');
+    const cleanAllBtn = document.querySelector('.clean-all-btn');
+    let originalText = '';
+
+    const cleaners = {
+      trim: text => text.split('\n').map(l => l.trim()).join('\n'),
+      collapseSpaces: text => text.replace(/[^\S\n]{2,}/g, ' '),
+      removeEmptyLines: text => text.replace(/\n{3,}/g, '\n\n').replace(/^\n+/, '').replace(/\n+$/, '\n'),
+      removeDuplicates: text => {
+        const seen = new Set();
+        return text.split('\n').filter(line => {
+          if (seen.has(line)) return false;
+          seen.add(line);
+          return true;
+        }).join('\n');
+      },
+      unwrapParagraphs: text => {
+        return text.split(/\n\n+/).map(para =>
+          para.replace(/\n/g, ' ')
+        ).join('\n\n');
+      },
+      fixPunctuation: text => text.replace(/([.!?,;:])(\s{2,})/g, '$1 '),
+      smartQuotes: text => {
+        return text
+          .replace(/(^|[\s(])"/g, '$1\u201c')
+          .replace(/"/g, '\u201d')
+          .replace(/(^|[\s(])'/g, '$1\u2018')
+          .replace(/'/g, '\u2019');
+      }
+    };
+
+    function getActiveOps() {
+      const ops = [];
+      toggles.forEach(t => {
+        if (t.classList.contains('active')) ops.push(t.dataset.op);
+      });
+      return ops;
+    }
+
+    function runPipeline() {
+      const ops = getActiveOps();
+      if (ops.length === 0) {
+        textarea.value = originalText;
+        return;
+      }
+      let result = originalText;
+      for (const op of ops) {
+        if (cleaners[op]) result = cleaners[op](result);
+      }
+      textarea.value = result;
+    }
+
+    toggles.forEach(toggle => {
+      toggle.addEventListener('click', () => {
+        toggle.classList.toggle('active');
+        runPipeline();
+      });
+    });
+
+    cleanAllBtn.addEventListener('click', () => {
+      toggles.forEach(t => t.classList.add('active'));
+      runPipeline();
+    });
+
+    textarea.addEventListener('input', () => {
+      if (getActiveOps().length === 0) {
+        originalText = textarea.value;
+      }
+    });
+
+    textarea.addEventListener('focus', () => {
+      if (!originalText) originalText = textarea.value;
+    });
   </script>
 </body>
 </html>
