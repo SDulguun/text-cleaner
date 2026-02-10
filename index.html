@@ -205,6 +205,39 @@
       accent-color: var(--accent);
       margin-right: 8px;
     }
+
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 8px 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.8rem;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .action-btn:hover {
+      border-color: var(--accent);
+      background: var(--bg);
+    }
+
+    .action-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .action-btn.copied {
+      border-color: #16a34a;
+      color: #16a34a;
+    }
   </style>
 </head>
 <body>
@@ -262,6 +295,15 @@
         <input type="radio" name="caseConversion" value="lower"> lower case
       </label>
     </div>
+
+    <div class="sidebar-section">
+      <h2>Actions</h2>
+      <div class="action-buttons">
+        <button class="action-btn" id="copyBtn">Copy</button>
+        <button class="action-btn" id="clearBtn">Clear</button>
+        <button class="action-btn" id="undoBtn" disabled>Undo</button>
+      </div>
+    </div>
   </aside>
 
   <main class="editor">
@@ -282,7 +324,11 @@
     const toggles = document.querySelectorAll('.toggle-track');
     const cleanAllBtn = document.querySelector('.clean-all-btn');
     const caseRadios = document.querySelectorAll('input[name="caseConversion"]');
+    const copyBtn = document.getElementById('copyBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const undoBtn = document.getElementById('undoBtn');
     let originalText = '';
+    const undoStack = [];
 
     const cleaners = {
       trim: text => text.split('\n').map(l => l.trim()).join('\n'),
@@ -342,7 +388,13 @@
       return checked ? checked.value : 'none';
     }
 
+    function pushUndo() {
+      undoStack.push({ text: textarea.value, original: originalText });
+      undoBtn.disabled = false;
+    }
+
     function runPipeline() {
+      pushUndo();
       const ops = getActiveOps();
       const caseMode = getSelectedCase();
       let result = originalText;
@@ -383,6 +435,33 @@
 
     textarea.addEventListener('focus', () => {
       if (!originalText) originalText = textarea.value;
+    });
+
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(textarea.value).then(() => {
+        copyBtn.textContent = 'Copied!';
+        copyBtn.classList.add('copied');
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy';
+          copyBtn.classList.remove('copied');
+        }, 1500);
+      });
+    });
+
+    clearBtn.addEventListener('click', () => {
+      if (textarea.value) pushUndo();
+      textarea.value = '';
+      originalText = '';
+      updateStats();
+    });
+
+    undoBtn.addEventListener('click', () => {
+      if (undoStack.length === 0) return;
+      const prev = undoStack.pop();
+      textarea.value = prev.text;
+      originalText = prev.original;
+      undoBtn.disabled = undoStack.length === 0;
+      updateStats();
     });
 
     updateStats();
