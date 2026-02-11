@@ -238,11 +238,39 @@
       border-color: #16a34a;
       color: #16a34a;
     }
+
+    body.dark {
+      --bg: #1a1a2e;
+      --surface: #16213e;
+      --text: #e0e0e0;
+      --text-muted: #a0a0b0;
+      --border: #2a2a4a;
+      --topbar-bg: #0f3460;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+    }
+
+    .theme-btn {
+      background: none;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: var(--topbar-text);
+      padding: 6px 12px;
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .theme-btn:hover {
+      border-color: rgba(255, 255, 255, 0.6);
+    }
   </style>
 </head>
 <body>
   <header class="topbar">
     <h1>Text Cleaner</h1>
+    <button class="theme-btn" id="themeBtn">Dark</button>
   </header>
 
   <aside class="sidebar">
@@ -465,6 +493,21 @@
     });
 
     updateStats();
+
+    const themeBtn = document.getElementById('themeBtn');
+    function applyTheme(dark) {
+      document.body.classList.toggle('dark', dark);
+      themeBtn.textContent = dark ? 'Light' : 'Dark';
+      localStorage.setItem('theme', dark ? 'dark' : 'light');
+    }
+
+    const saved = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyTheme(saved ? saved === 'dark' : prefersDark);
+
+    themeBtn.addEventListener('click', () => {
+      applyTheme(!document.body.classList.contains('dark'));
+    });
   </script>
 </body>
 </html>
