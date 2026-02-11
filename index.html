@@ -326,6 +326,51 @@
       padding: 16px 0;
       text-align: center;
     }
+
+    @media (max-width: 640px) {
+      body {
+        grid-template-columns: 1fr;
+        grid-template-rows: var(--topbar-height) auto 1fr var(--statsbar-height);
+        grid-template-areas:
+          "topbar"
+          "sidebar"
+          "editor"
+          "statsbar";
+        height: 100vh;
+      }
+
+      .sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        max-height: 40vh;
+        overflow-y: auto;
+      }
+
+      .editor textarea {
+        min-height: 200px;
+      }
+
+      .stats-bar {
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        padding: 6px 16px;
+        height: auto;
+        min-height: var(--statsbar-height);
+      }
+
+      .topbar h1 {
+        font-size: 1rem;
+      }
+
+      .topbar-actions {
+        gap: 4px;
+      }
+
+      .theme-btn {
+        padding: 4px 8px;
+        font-size: 0.75rem;
+      }
+    }
   </style>
 </head>
 <body>
