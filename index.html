@@ -265,12 +265,76 @@
     .theme-btn:hover {
       border-color: rgba(255, 255, 255, 0.6);
     }
+
+    .topbar-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .diff-view {
+      flex: 1;
+      width: 100%;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      overflow-y: auto;
+      font-family: var(--font);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      display: none;
+    }
+
+    .diff-view.active {
+      display: block;
+    }
+
+    .diff-view .diff-line {
+      padding: 1px 8px;
+      border-radius: 3px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .diff-line.removed {
+      background: rgba(239, 68, 68, 0.15);
+      color: #dc2626;
+    }
+
+    .diff-line.added {
+      background: rgba(34, 197, 94, 0.15);
+      color: #16a34a;
+    }
+
+    body.dark .diff-line.removed {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+    }
+
+    body.dark .diff-line.added {
+      background: rgba(34, 197, 94, 0.2);
+      color: #86efac;
+    }
+
+    .diff-line.unchanged {
+      color: var(--text-muted);
+    }
+
+    .diff-empty {
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 16px 0;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
   <header class="topbar">
     <h1>Text Cleaner</h1>
-    <button class="theme-btn" id="themeBtn">Dark</button>
+    <div class="topbar-actions">
+      <button class="theme-btn" id="diffBtn">Diff</button>
+      <button class="theme-btn" id="themeBtn">Dark</button>
+    </div>
   </header>
 
   <aside class="sidebar">
@@ -336,6 +400,7 @@
 
   <main class="editor">
     <textarea placeholder="Paste or type your text here..."></textarea>
+    <div class="diff-view" id="diffView"></div>
   </main>
 
   <footer class="stats-bar">
@@ -493,6 +558,57 @@
     });
 
     updateStats();
+
+    const diffBtn = document.getElementById('diffBtn');
+    const diffView = document.getElementById('diffView');
+    let diffActive = false;
+
+    function computeDiff(oldText, newText) {
+      const oldLines = oldText.split('\n');
+      const newLines = newText.split('\n');
+      const result = [];
+      const maxLen = Math.max(oldLines.length, newLines.length);
+      for (let i = 0; i < maxLen; i++) {
+        const oldLine = i < oldLines.length ? oldLines[i] : undefined;
+        const newLine = i < newLines.length ? newLines[i] : undefined;
+        if (oldLine === newLine) {
+          result.push({ type: 'unchanged', text: oldLine });
+        } else {
+          if (oldLine !== undefined) result.push({ type: 'removed', text: oldLine });
+          if (newLine !== undefined) result.push({ type: 'added', text: newLine });
+        }
+      }
+      return result;
+    }
+
+    function renderDiff() {
+      if (!diffActive) return;
+      const cleaned = textarea.value;
+      if (originalText === cleaned || !originalText) {
+        diffView.innerHTML = '<div class="diff-empty">No changes to display. Enable cleaning options to see a diff.</div>';
+        return;
+      }
+      const lines = computeDiff(originalText, cleaned);
+      diffView.innerHTML = lines.map(l => {
+        const prefix = l.type === 'removed' ? '- ' : l.type === 'added' ? '+ ' : '  ';
+        const escaped = (prefix + l.text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return `<div class="diff-line ${l.type}">${escaped}</div>`;
+      }).join('');
+    }
+
+    diffBtn.addEventListener('click', () => {
+      diffActive = !diffActive;
+      diffBtn.textContent = diffActive ? 'Editor' : 'Diff';
+      textarea.style.display = diffActive ? 'none' : '';
+      diffView.classList.toggle('active', diffActive);
+      if (diffActive) renderDiff();
+    });
+
+    const origRunPipeline = runPipeline;
+    runPipeline = function() {
+      origRunPipeline();
+      renderDiff();
+    };
 
     const themeBtn = document.getElementById('themeBtn');
     function applyTheme(dark) {
