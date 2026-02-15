@@ -443,16 +443,95 @@
         font-size: 0.8rem;
       }
     }
+
+    .find-replace-bar {
+      display: none;
+      padding: 8px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 0.85rem;
+    }
+
+    .find-replace-bar.active {
+      display: flex;
+    }
+
+    .find-replace-bar input[type="text"] {
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 0.85rem;
+      width: 180px;
+    }
+
+    .find-replace-bar input[type="text"]:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: -1px;
+    }
+
+    .find-replace-bar button {
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .find-replace-bar button:hover {
+      border-color: var(--accent);
+      background: var(--bg);
+    }
+
+    .find-replace-bar .fr-regex-toggle {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .find-replace-bar .fr-regex-toggle input {
+      accent-color: var(--accent);
+    }
+
+    .fr-match-count {
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      min-width: 60px;
+    }
   </style>
 </head>
 <body>
   <header class="topbar">
     <h1>Text Cleaner</h1>
     <div class="topbar-actions">
+      <button class="theme-btn" id="findReplaceToggle">Find</button>
       <button class="theme-btn" id="diffBtn">Diff</button>
       <button class="theme-btn" id="themeBtn">Dark</button>
     </div>
   </header>
+
+  <div class="find-replace-bar" id="findReplaceBar">
+    <input type="text" id="frFind" placeholder="Find...">
+    <input type="text" id="frReplace" placeholder="Replace with...">
+    <button id="frReplaceBtn">Replace</button>
+    <button id="frReplaceAllBtn">Replace All</button>
+    <label class="fr-regex-toggle">
+      <input type="checkbox" id="frRegex"> Regex
+    </label>
+    <span class="fr-match-count" id="frMatchCount"></span>
+  </div>
 
   <aside class="sidebar">
     <h2>Cleaning Options</h2>
@@ -845,12 +924,89 @@
         if (undoStack.length > 0) undoBtn.click();
       }
 
-      // Ctrl+H — Toggle find & replace (will be wired in find-replace feature)
+      // Ctrl+H — Toggle find & replace
       if (mod && e.key === 'h') {
         e.preventDefault();
-        const frBar = document.getElementById('findReplaceBar');
-        if (frBar) frBar.style.display = frBar.style.display === 'none' ? '' : 'none';
+        toggleFindReplace();
       }
+    });
+
+    // Find & Replace
+    const frBar = document.getElementById('findReplaceBar');
+    const frToggleBtn = document.getElementById('findReplaceToggle');
+    const frFindInput = document.getElementById('frFind');
+    const frReplaceInput = document.getElementById('frReplace');
+    const frReplaceBtn = document.getElementById('frReplaceBtn');
+    const frReplaceAllBtn = document.getElementById('frReplaceAllBtn');
+    const frRegexCheckbox = document.getElementById('frRegex');
+    const frMatchCount = document.getElementById('frMatchCount');
+
+    function toggleFindReplace() {
+      frBar.classList.toggle('active');
+      if (frBar.classList.contains('active')) frFindInput.focus();
+    }
+
+    frToggleBtn.addEventListener('click', toggleFindReplace);
+
+    function buildPattern(findStr, useRegex) {
+      if (!findStr) return null;
+      if (useRegex) {
+        return new RegExp(findStr, 'g');
+      }
+      const escaped = findStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return new RegExp(escaped, 'gi');
+    }
+
+    function updateMatchCount() {
+      const findStr = frFindInput.value;
+      if (!findStr) { frMatchCount.textContent = ''; return; }
+      try {
+        const pattern = buildPattern(findStr, frRegexCheckbox.checked);
+        const matches = textarea.value.match(pattern);
+        frMatchCount.textContent = matches ? `${matches.length} match${matches.length === 1 ? '' : 'es'}` : 'No matches';
+      } catch {
+        frMatchCount.textContent = 'Invalid regex';
+      }
+    }
+
+    frFindInput.addEventListener('input', updateMatchCount);
+    frRegexCheckbox.addEventListener('change', updateMatchCount);
+    textarea.addEventListener('input', updateMatchCount);
+
+    frReplaceBtn.addEventListener('click', () => {
+      const findStr = frFindInput.value;
+      if (!findStr) return;
+      try {
+        const pattern = buildPattern(findStr, frRegexCheckbox.checked);
+        pushUndo();
+        textarea.value = textarea.value.replace(pattern, frReplaceInput.value);
+        originalText = textarea.value;
+        updateStats();
+        updateMatchCount();
+        saveState();
+      } catch { frMatchCount.textContent = 'Invalid regex'; }
+    });
+
+    frReplaceAllBtn.addEventListener('click', () => {
+      const findStr = frFindInput.value;
+      if (!findStr) return;
+      try {
+        const pattern = buildPattern(findStr, frRegexCheckbox.checked);
+        pushUndo();
+        // Replace all by re-running until no matches (for non-regex) or use global flag
+        let result = textarea.value;
+        if (frRegexCheckbox.checked) {
+          result = result.replace(pattern, frReplaceInput.value);
+        } else {
+          const escaped = findStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          result = result.replace(new RegExp(escaped, 'gi'), frReplaceInput.value);
+        }
+        textarea.value = result;
+        originalText = textarea.value;
+        updateStats();
+        updateMatchCount();
+        saveState();
+      } catch { frMatchCount.textContent = 'Invalid regex'; }
     });
   </script>
 </body>
