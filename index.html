@@ -593,6 +593,7 @@
         <button class="action-btn" id="importBtn">Import</button>
         <input type="file" id="fileInput" accept=".txt,.md,.csv,.log" hidden>
         <button class="action-btn" id="downloadBtn">Download</button>
+        <button class="action-btn" id="speakBtn">Speak</button>
       </div>
     </div>
   </aside>
@@ -1007,6 +1008,30 @@
         updateMatchCount();
         saveState();
       } catch { frMatchCount.textContent = 'Invalid regex'; }
+    });
+
+    // Text-to-Speech
+    const speakBtn = document.getElementById('speakBtn');
+    let speechUtterance = null;
+
+    speakBtn.addEventListener('click', () => {
+      if (speechSynthesis.speaking) {
+        speechSynthesis.cancel();
+        speakBtn.textContent = 'Speak';
+        return;
+      }
+      const text = textarea.value.trim();
+      if (!text) return;
+      speechUtterance = new SpeechSynthesisUtterance(text);
+      speechUtterance.rate = 1;
+      speechUtterance.pitch = 1;
+      const voices = speechSynthesis.getVoices();
+      const englishVoice = voices.find(v => v.lang.startsWith('en') && v.default) || voices.find(v => v.lang.startsWith('en'));
+      if (englishVoice) speechUtterance.voice = englishVoice;
+      speechUtterance.onstart = () => { speakBtn.textContent = 'Stop'; };
+      speechUtterance.onend = () => { speakBtn.textContent = 'Speak'; };
+      speechUtterance.onerror = () => { speakBtn.textContent = 'Speak'; };
+      speechSynthesis.speak(speechUtterance);
     });
   </script>
 </body>
