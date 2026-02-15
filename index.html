@@ -816,6 +816,42 @@
     themeBtn.addEventListener('click', () => {
       applyTheme(!document.body.classList.contains('dark'));
     });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+      const mod = e.ctrlKey || e.metaKey;
+
+      // Ctrl+S — Download
+      if (mod && e.key === 's') {
+        e.preventDefault();
+        downloadBtn.click();
+      }
+
+      // Ctrl+O — Import
+      if (mod && e.key === 'o') {
+        e.preventDefault();
+        importBtn.click();
+      }
+
+      // Ctrl+Shift+C — Copy (only outside textarea to not override default)
+      if (mod && e.shiftKey && e.key === 'C') {
+        e.preventDefault();
+        copyBtn.click();
+      }
+
+      // Ctrl+Z — Undo (when not focused in textarea, which has native undo)
+      if (mod && e.key === 'z' && document.activeElement !== textarea) {
+        e.preventDefault();
+        if (undoStack.length > 0) undoBtn.click();
+      }
+
+      // Ctrl+H — Toggle find & replace (will be wired in find-replace feature)
+      if (mod && e.key === 'h') {
+        e.preventDefault();
+        const frBar = document.getElementById('findReplaceBar');
+        if (frBar) frBar.style.display = frBar.style.display === 'none' ? '' : 'none';
+      }
+    });
   </script>
 </body>
 </html>
