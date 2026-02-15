@@ -14,6 +14,10 @@ A single-page text cleaning tool built with vanilla HTML, CSS, and JavaScript.
 - Dark mode toggle with system preference detection
 - Before/after diff preview
 - Responsive layout for mobile
+- Keyboard shortcuts (Ctrl+S download, Ctrl+O import, Ctrl+Shift+C copy, Ctrl+H find/replace)
+- Find and replace with regex support and live match count
+- Text-to-speech preview using Web Speech API
+- Custom regex cleaner with error handling
 
 ## Usage
 
