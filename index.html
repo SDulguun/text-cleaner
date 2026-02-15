@@ -604,6 +604,7 @@
     }
 
     function runPipeline() {
+      if (!originalText) originalText = textarea.value;
       pushUndo();
       const ops = getActiveOps();
       const caseMode = getSelectedCase();
