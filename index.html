@@ -511,6 +511,7 @@
         <button class="action-btn" id="copyBtn">Copy</button>
         <button class="action-btn" id="clearBtn">Clear</button>
         <button class="action-btn" id="undoBtn" disabled>Undo</button>
+        <button class="action-btn" id="downloadBtn">Download</button>
       </div>
     </div>
   </aside>
@@ -537,6 +538,7 @@
     const copyBtn = document.getElementById('copyBtn');
     const clearBtn = document.getElementById('clearBtn');
     const undoBtn = document.getElementById('undoBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
     let originalText = '';
     const undoStack = [];
 
@@ -673,6 +675,16 @@
       originalText = prev.original;
       undoBtn.disabled = undoStack.length === 0;
       updateStats();
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      const blob = new Blob([textarea.value], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'cleaned-text.txt';
+      a.click();
+      URL.revokeObjectURL(url);
     });
 
     updateStats();
