@@ -510,6 +510,30 @@
       font-size: 0.82rem;
       min-width: 60px;
     }
+
+    .custom-regex-section input[type="text"] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      color: var(--text);
+      font-family: monospace;
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+    }
+
+    .custom-regex-section input[type="text"]:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: -1px;
+    }
+
+    .custom-regex-section .regex-error {
+      color: #ef4444;
+      font-size: 0.8rem;
+      margin-bottom: 8px;
+      min-height: 1.2em;
+    }
   </style>
 </head>
 <body>
@@ -595,6 +619,14 @@
         <button class="action-btn" id="downloadBtn">Download</button>
         <button class="action-btn" id="speakBtn">Speak</button>
       </div>
+    </div>
+
+    <div class="sidebar-section custom-regex-section">
+      <h2>Custom Regex</h2>
+      <input type="text" id="regexPattern" placeholder="Pattern (e.g. \d+)">
+      <input type="text" id="regexReplacement" placeholder="Replacement">
+      <div class="regex-error" id="regexError"></div>
+      <button class="clean-all-btn" id="applyRegexBtn">Apply Regex</button>
     </div>
   </aside>
 
@@ -1032,6 +1064,30 @@
       speechUtterance.onend = () => { speakBtn.textContent = 'Speak'; };
       speechUtterance.onerror = () => { speakBtn.textContent = 'Speak'; };
       speechSynthesis.speak(speechUtterance);
+    });
+
+    // Custom Regex Cleaner
+    const regexPatternInput = document.getElementById('regexPattern');
+    const regexReplacementInput = document.getElementById('regexReplacement');
+    const applyRegexBtn = document.getElementById('applyRegexBtn');
+    const regexError = document.getElementById('regexError');
+
+    regexPatternInput.addEventListener('input', () => { regexError.textContent = ''; });
+
+    applyRegexBtn.addEventListener('click', () => {
+      const pattern = regexPatternInput.value;
+      if (!pattern) { regexError.textContent = 'Enter a regex pattern'; return; }
+      try {
+        const regex = new RegExp(pattern, 'g');
+        pushUndo();
+        textarea.value = textarea.value.replace(regex, regexReplacementInput.value);
+        originalText = textarea.value;
+        updateStats();
+        saveState();
+        regexError.textContent = '';
+      } catch (e) {
+        regexError.textContent = e.message;
+      }
     });
   </script>
 </body>
