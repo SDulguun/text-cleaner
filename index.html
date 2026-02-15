@@ -513,6 +513,7 @@
         <button class="action-btn" id="undoBtn" disabled>Undo</button>
         <button class="action-btn" id="importBtn">Import</button>
         <input type="file" id="fileInput" accept=".txt,.md,.csv,.log" hidden>
+        <button class="action-btn" id="downloadBtn">Download</button>
       </div>
     </div>
   </aside>
@@ -541,6 +542,7 @@
     const undoBtn = document.getElementById('undoBtn');
     const importBtn = document.getElementById('importBtn');
     const fileInput = document.getElementById('fileInput');
+    const downloadBtn = document.getElementById('downloadBtn');
     let originalText = '';
     const undoStack = [];
 
@@ -701,6 +703,16 @@
     textarea.addEventListener('drop', e => {
       e.preventDefault();
       if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      const blob = new Blob([textarea.value], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'cleaned-text.txt';
+      a.click();
+      URL.revokeObjectURL(url);
     });
 
     updateStats();
