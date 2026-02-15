@@ -546,6 +546,34 @@
     let originalText = '';
     const undoStack = [];
 
+    function saveState() {
+      localStorage.setItem('tc-text', textarea.value);
+      localStorage.setItem('tc-original', originalText);
+      localStorage.setItem('tc-toggles', JSON.stringify(getActiveOps()));
+      localStorage.setItem('tc-case', getSelectedCase());
+    }
+
+    function restoreState() {
+      const saved = localStorage.getItem('tc-text');
+      if (saved !== null) {
+        textarea.value = saved;
+        originalText = localStorage.getItem('tc-original') || saved;
+      }
+      const savedToggles = localStorage.getItem('tc-toggles');
+      if (savedToggles) {
+        const ops = JSON.parse(savedToggles);
+        toggles.forEach(t => {
+          if (ops.includes(t.dataset.op)) t.classList.add('active');
+        });
+      }
+      const savedCase = localStorage.getItem('tc-case');
+      if (savedCase) {
+        const radio = document.querySelector(`input[name="caseConversion"][value="${savedCase}"]`);
+        if (radio) radio.checked = true;
+      }
+      updateStats();
+    }
+
     const cleaners = {
       trim: text => text.split('\n').map(l => l.trim()).join('\n'),
       collapseSpaces: text => text.replace(/[^\S\n]{2,}/g, ' '),
@@ -625,6 +653,7 @@
       }
       textarea.value = result;
       updateStats();
+      saveState();
     }
 
     toggles.forEach(toggle => {
@@ -648,6 +677,7 @@
         originalText = textarea.value;
       }
       updateStats();
+      saveState();
     });
 
     textarea.addEventListener('focus', () => {
@@ -670,6 +700,10 @@
       textarea.value = '';
       originalText = '';
       updateStats();
+      localStorage.removeItem('tc-text');
+      localStorage.removeItem('tc-original');
+      localStorage.removeItem('tc-toggles');
+      localStorage.removeItem('tc-case');
     });
 
     undoBtn.addEventListener('click', () => {
@@ -715,7 +749,7 @@
       URL.revokeObjectURL(url);
     });
 
-    updateStats();
+    restoreState();
 
     const diffBtn = document.getElementById('diffBtn');
     const diffView = document.getElementById('diffView');
